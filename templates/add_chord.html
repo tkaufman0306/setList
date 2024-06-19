@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Chord</title> 
+</head>
+<body>
+    <h1>Add Chord Above Specific Word</h1>
+    <form action="/add-chord" method="POST">
+        <label for="chord">Chord:</label>
+        <input type="text" id="chord" name="chord" required>
+        <br>
+        <label for="word_index">Word Index:</label>
+        <input type="number" id="word_index" name="word_index" required>
+        <br>
+        <input type="hidden" id="song_id" name="song_id" value="{{ song_id }}">
+        <button type="submit">Add Chord</button>
+    </form>
+
+    {% if 'user_id' in session %}
+    <li><a href="/logout">Logout</a></li>
+    <li><a href="/secret">Secret</a></li>
+    {% endif %}
+    
+</body>
+</html>
