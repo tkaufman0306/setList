@@ -1,16 +1,25 @@
+<!-- base.html file for setList app -->
+
+
 <html>
 
 <head>
     <link rel="stylesheet" href="https://bootswatch.com/4/united/bootstrap.min.css">
-
+    <link rel="stylesheet" href="/static/stylesheets/style.css">
 </head>
 
 <body>
     <div class="navbar navbar-light bg-primary">
         <div class="navbar-container">
             <div class="navbar-brand"><a class="text-white" href="/">SetList</a></div>
+            {% if 'user_id' in session %}
+            <div>
+                <a class="text-white" href="/logout">Logout</a>
+            </div>
+            {% endif %}
         </div>
     </div>
+
 
     <div class="container" style="margin-top: 2em">
         {% for msg in get_flashed_messages() %}

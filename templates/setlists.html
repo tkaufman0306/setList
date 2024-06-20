@@ -1,0 +1,38 @@
+<!-- homepage: redirect from ('/') -->
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Your Setlists</h1>
+
+<form action="/view-setlists" method="POST">
+    {{ form.hidden_tag() }}
+    <div>
+        {{ form.name.label }} {{ form.name }}
+    </div>
+    <button type="submit">Create Setlist</button>
+</form>
+
+<ul>
+    {% for setlist in setlists %}
+    <li><a href="{{ url_for('view_setlist', setlist_id=setlist=id) }}">{{ setlist.name }}</a></li>
+    {% endfor %}
+</ul>
+
+{% endblock %}
+
+
+
+
+
+<!-- <ul class="list-group">
+    {% for setlist in setlists %}
+    <li class="list-group-item">
+        <a href="/setlists/{{ setlist.id }}">{{ setlist.name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+
+<p><a class="btn btn-primary mt-3" href="/playlists/add">Add a setList</a></p>
+
+{% endblock %} -->

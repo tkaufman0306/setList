@@ -1,0 +1,45 @@
+
+<!-- setlist.html file to display and edit the current setlist -->
+
+{% extends "base.html" %}
+{% block content %}
+
+<h1>{{ setlist.name }}</h1>
+
+<button id="edit-button">Edit</button>
+
+<ul id="song-list">
+    {% for song in setlist.songs %}
+    <li data-song-id="{{ song.id }}"> 
+        {{ song.title }} by {{ song.artist }} 
+        <button class="remove-button" style="display: none;">Remove</button>
+    </li>
+    {% endfor %}
+</ul>
+
+<h2>Add a Song</h2>
+<form action="" method="POST">
+    {{ form.hidden_tag() }}
+    <div>
+        {{ form.existing_song.label }} {{ form.existing_song }}
+    </div>
+    <div>
+        {{ form.new_song_title.label }} {{ form.new_song_title }}
+    </div>
+    <div>
+        {{ form.new_song_artist.label }} {{ form.new_song_artist }}
+    </div>
+    <button type="submit">{{ form.submit.label }}</button>
+</form>
+
+
+
+<a href="{{ url_for('view_setlists') }}">Back to Setlists</a>
+
+<!-- <script>
+    const setlistId = {{ setlist.id|tojson }};
+</script> -->
+
+<script src="{{ url_for('static', filename='js/setlist.js') }}"></script>
+
+{% endblock %}
