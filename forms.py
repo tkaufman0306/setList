@@ -17,8 +17,9 @@ class LoginForm(FlaskForm):
 class SetListForm(FlaskForm):
     """Form for adding playlists."""
 
-    name = StringField("Playlist Name", validators=[InputRequired(), Length(min=1, max=100)])
-    description = StringField("Description", validators=[InputRequired(), Length(min=1, max=200)])  
+    name = StringField("Setlist Name", validators=[InputRequired(), Length(min=1, max=100)])
+    submit = SubmitField('Create Setlist')
+    # description = StringField("Description", validators=[InputRequired(), Length(min=1, max=200)])  
 
 class SongForm(FlaskForm):
     """Form for adding songs."""

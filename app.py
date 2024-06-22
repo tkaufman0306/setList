@@ -1,33 +1,39 @@
 """app.py file for setList application"""
 
 
-import requests
-
 from flask import Flask, render_template, redirect, session, flash, request, url_for, jsonify
-
 from flask_debugtoolbar import DebugToolbarExtension
-
-from models import db, connect_db, Setlist, Song, SetlistSong, User, Chord, Word  
-
+from models import db, connect_db, Setlist, Song, User, Chord, Word  
 from forms import UserForm, SetListForm, SongForm, NewSongForSetListForm, AddSongForm, LoginForm
-
 from sqlalchemy.exc import IntegrityError
-
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-
+from flask_bcrypt import Bcrypt
+import requests
+ 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///setlist-app'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = "I'LL NEVER TELL!!"
+app.config['SESSION_COOKIE_NAME'] = "setlist_session"
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 
+debug = DebugToolbarExtension(app)
+bcrypt = Bcrypt(app)
+# db.init_app(app)
 connect_db(app)
+# db.drop_all()
 db.create_all()
 
-db = SQLAlchemy(app)
+# @app.route('/reset-db')
+# def reset_db():
+#     db.drop_all()
+#     db.create_all()
+#     return "Database reset!"
 
-# Musixmatch API key:
+"""Musixmatch API key:"""
 API_KEY = '5246d25b2a2d0134a4a519068cf1e3aa'
 
 
@@ -36,18 +42,47 @@ def homepage():
     if 'user_id' in session:
         return redirect(url_for('view_setlists'))
     form = LoginForm()
+    if form.validate_on_submit():
+        print("Form validated successfully")
     return render_template('home_anon.html', form=form)
 
-@app.route('/view-setlists')
+
+@app.route('/create_setlist', methods=['GET', 'POST'])
+def create_setlist():
+    if 'user_id' not in session:
+        flash('Please log in first.', 'error')
+        return redirect(url_for('login'))
+    
+    form = SetListForm()
+    if form.validate_on_submit():
+        user_id = session['user_id']
+        setlist_name = form.name.data
+        
+        # Create new setlist
+        new_setlist = Setlist(name=setlist_name, user_id=user_id)  # Add user_id here
+        db.session.add(new_setlist)
+        db.session.commit()
+        
+        flash('Setlist created successfully!', 'success')
+        return redirect(url_for('view_setlists'))
+    
+    return render_template('create_setlist.html', form=form)
+
+
+#  Route to view user setlists  
+@app.route('/view_setlists')
 def view_setlists():
+    form = SetListForm()
+    
     if 'user_id' not in session:
         flash("Please log in first.", "danger")
         return redirect(url_for('homepage'))
     
     user_id = session['user_id']
     setlists = Setlist.query.filter_by(user_id=user_id).all()
-    return render_template('setlists.html', setlists=setlists)
+    return render_template('view_setlists.html', setlists=setlists, form=form)
 
+# Route to view a specific setlist
 @app.route('/setlist/<int:setlist_id>')
 def view_setlist(setlist_id):
     setlist = Setlist.query.get_or_404(setlist_id)
@@ -65,7 +100,7 @@ def view_setlist(setlist_id):
             song_artist = form.new_song_artist.data
             song = Song(title=song_title, artist=song_artist, user_id=session['user_id'])
             db.session.add(song)
-            db.session.commit
+            db.session.commit()
 
         setlist.songs.append(song)
         db.session.commit()
@@ -75,6 +110,7 @@ def view_setlist(setlist_id):
     return render_template('setlist.html', setlist=setlist, form=form)
 
 
+# Route to remove a song from a setlist
 @app.route('/setlist/<int:setlist_id>/remove-song', methods=['POST'])
 def remove_song_from_setlist(setlist_id):
     data = request.get_json()
@@ -157,32 +193,44 @@ def register_user():
         new_user = User.register(username, password)
 
         db.session.add(new_user)
+        db.session.commit()
         try:
             db.session.commit()
+            session['user_id'] = new_user.id
+            flash('Welcome! Successfully Created Your Account!', "success")
+            return redirect(url_for('view-setlists'))
+        
         except IntegrityError as e:
             db.session.rollback()
+            print(f"IntegrityError: {e}")
             form.username.errors.append('Username taken.  Please pick another')
-            return render_template('signup.html', form=form)
-        
-        session['user_id'] = new_user.id
-        flash('Welcome! Successfully Created Your Account!', "success")
-        return redirect('/setlists')
+        except Exception as e:
+            db.session.rollback()
+            print(f"Exception: {e}")
+            form.username.errors.append('An error occurred. Please try again.')
     
     return render_template('signup.html', form=form)
     
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    form = UserForm()
+    form = LoginForm()
     if form.validate_on_submit():
+        print("Form submitted successfully.")
         user = User.authenticate(form.username.data, form.password.data)
         if user:
+            print(f"Authentication successful for user: {user.username}")
             session['user_id'] = user.id
+            print(f"User authenticated. User ID: {user.id} stored in session.", session['user_id'])
             flash(f"Welcome back, {user.username}!", "success")
             return redirect(url_for('view_setlists'))
-        form.username.errors = ['Invalid username or password.']
+        else:
+            print("Authentication failed.")
+            form.username.errors.append('Invalid username or password.')
+    else:
+        print("form validation failed.")
 
-    return render_template('home-anon.html', form=form)
+    return render_template('home_anon.html', form=form)
 
 
 @app.route('/logout')
