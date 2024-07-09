@@ -2,8 +2,8 @@
 
 
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Length
+from wtforms import SelectField, StringField, PasswordField, SubmitField, TextAreaField
+from wtforms.validators import InputRequired, Length, DataRequired
 
 
 class UserForm(FlaskForm):
@@ -21,18 +21,30 @@ class SetListForm(FlaskForm):
     submit = SubmitField('Create Setlist')
     # description = StringField("Description", validators=[InputRequired(), Length(min=1, max=200)])  
 
-class SongForm(FlaskForm):
-    """Form for adding songs."""
-    title = StringField("Title", validators=[InputRequired(), Length(min=1, max=100)])
-    artist = StringField("Artist", validators=[InputRequired(), Length(min=1, max=100)])
-
-class NewSongForSetListForm(FlaskForm):
-    """Form for adding a song to playlist."""
-
-    song = SelectField('Song To Add', coerce=int, validators=[InputRequired()])
 
 class AddSongForm(FlaskForm):
-    existing_song = SelectField('Select an existing song', coerce=int)
-    new_song_title = StringField('Or add a new song title', validators=[Length(max=100)])
-    new_song_artist = StringField('Add artist name', validators=[Length(max=100)])
+    existing_song = SelectField('Select an existing song', coerce=int, coices=[])
+    new_song_title = StringField('Or add a new song title', validators=[Length(max=100), DataRequired()])
+    new_song_artist = StringField('Add artist name', validators=[Length(max=100), DataRequired()])
     submit = SubmitField('Add Song')
+
+class UserSongForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=100)])
+    artist = StringField('Artist', validators=[DataRequired(), Length(max=100)])
+    submit = SubmitField('Create Song')
+    chords = TextAreaField('Chords', validators=[Length(max=1000)])  
+    
+    
+# Optional: Add validators as needed
+# class SongForm(FlaskForm):
+#     """Form for adding songs."""
+#     title = StringField("Title", validators=[InputRequired(), Length(min=1, max=100)])
+#     artist = StringField("Artist", validators=[InputRequired(), Length(min=1, max=100)])
+
+# class NewSongForSetListForm(FlaskForm):
+#     """Form for adding a song to playlist."""
+
+#     existing_song = SelectField('Select an existing song', coerce=int)
+#     new_song_title = StringField('Or add a new song title', validators=[Length(max=100)])
+#     new_song_artist = StringField('Add artist name', validators=[Length(max=100)])
+#     submit = SubmitField('Add Song')

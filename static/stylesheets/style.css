@@ -493,7 +493,7 @@ p.card-bio {
     background-color: #62676c;
 }
 
-#messages.no-hover .message-area {
+/* #messages.no-hover .message-area {
     width: 100%;
 }
 
@@ -524,7 +524,7 @@ p.card-bio {
 
 /* ================================ 404 page */
 
-.message-404 {
+/* .message-404 {
     color: white;
     margin-top: 2em;
     text-align: center;
@@ -540,4 +540,4 @@ p.card-bio {
 
 .message-404 .form-inline input {
     flex: 1;
-}
+} */ 

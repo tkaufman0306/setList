@@ -3,18 +3,18 @@
 
 {% block content %}
 
-<h1>Setlists</h1>
+<h1>Your Setlists</h1>
 
 <!-- Display existing setlists as clickable links  -->
 <ul>
     {% for setlist in setlists %}
-    <li><a href="{{ url_for('view_setlist', setlist_id=setlist_id) }}">{{ setlist.name }}</a></li>
+    <li><a href="{{ url_for('view_setlist', setlist_id=setlist.id) }}">{{ setlist.name }}</a></li>
     {% endfor %}
 </ul>
 
 
 <h2>Create a New Setlist</h2>
-<form method="POST" action="{{ url_for('view_setlists') }}" >
+<form method="POST" action="{{ url_for('create_setlist') }}" >
     {{ form.hidden_tag() }}
     <div>
         {{ form.name.label }}<br>

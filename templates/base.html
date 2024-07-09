@@ -1,5 +1,6 @@
 <!-- base.html file for setList app -->
 
+{% block content %}
 
 <html>
 
@@ -26,10 +27,10 @@
         <div class="alert alert-danger">{{ msg }}</div>
         {% endfor %}
 
-        {% block content %}
-        {% endblock %}
     </div>
-
+    
 </body>
 
 </html>
+
+{% endblock %}

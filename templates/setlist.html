@@ -8,17 +8,18 @@
 
 <button id="edit-button">Edit</button>
 
+<h2>Songs in this setlist:</h2>
 <ul id="song-list">
     {% for song in setlist.songs %}
     <li data-song-id="{{ song.id }}"> 
-        {{ song.title }} by {{ song.artist }} 
+        <a href="{{ url_for('view_song', song_id=song.id) }}">{{ song.title }} by {{ song.artist }}</a>
         <button class="remove-button" style="display: none;">Remove</button>
     </li>
     {% endfor %}
 </ul>
 
-<h2>Add a Song</h2>
-<form action="" method="POST">
+<h2>Add a new song to this Setlist:</h2>
+<form action="{{ url_for('view_setlist', setlist_id=setlist.id) }}" method="POST">
     {{ form.hidden_tag() }}
     <div>
         {{ form.existing_song.label }} {{ form.existing_song }}

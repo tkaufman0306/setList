@@ -1,6 +1,7 @@
 """models.py file for setList app"""
 
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin, LoginManager
 from sqlalchemy.orm import relationship, backref
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_bcrypt import Bcrypt
@@ -10,7 +11,8 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 
 
-# from app import db
+def connect_db(app):
+    db.init_app(app)
 
 
 
@@ -20,46 +22,7 @@ setlist_songs = db.Table(
     db.Column('song_id', db.Integer, db.ForeignKey('songs.id'), primary_key=True)
 )
 
-class Setlist(db.Model):
-    __tablename__ = 'setlists'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    songs = db.relationship('Song', secondary=setlist_songs, backref=db.backref('setlists', lazy=True))
-
-
-class Song(db.Model):
-    __tablename__ = 'songs'
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    artist = db.Column(db.String(200), nullable=False)
-    lyrics = db.Column(db.Text, nullable=False)
-    api_source = db.Column(db.String(200))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    chords = db.relationship('Chord', backref='songs', lazy=True)
-
-
-# class SetlistSong(db.Model):
-
-#     __tablename__ = 'setlist_songs'
-#     __table_args__ = {'extend_existing': True}
-
-#     id = db.Column(db.Integer, primary_key=True)
-    
-#     setlist_id = db.Column(db.Integer, db.ForeignKey('setlists.id'), primary_key=True, nullable=False)
-    
-#     song_id = db.Column(db.Integer, db.ForeignKey('songs.id'), primary_key=True, nullable=False)
-
-#     # Define relationships
-#     setlist = db.relationship('Setlist', backref='setlist_song_associations', overlaps="setlists,songs")
-#     song = db.relationship('Song', backref='setlist_song_associations', overlaps="setlists,songs")
-
-#     def __repr__(self):
-#         return f'<SetlistSong id={self.id} setlist_id={self.setlist_id} song_id={self.song_id}>'
-
-class User(db.Model):
+class User(UserMixin, db.Model):
     """Site user."""
 
     __tablename__ = 'users'
@@ -71,11 +34,16 @@ class User(db.Model):
                          nullable=False)
     password_hash = db.Column(db.String(200), 
                               nullable=False)
-    songs = db.relationship('Song', 
-                            backref='user', 
-                            lazy=True)
+    user_songs_rel = db.relationship('UserSong', backref=db.backref('user', lazy=True))
+
+    created_songs = db.relationship('Song', 
+                            backref=db.backref('creator', 
+                            lazy=True))
     setlists = db.relationship('Setlist',
-                                backref='user', lazy=True)
+                                back_populates='user', lazy=True)
+    
+    def get_id(self):
+        return (self.id)
     
     def set_password(self, password):
         """Set password with bcrypt"""
@@ -87,8 +55,8 @@ class User(db.Model):
     
     @classmethod
     def register(cls, username, password):
-        hashed_password = hashpw(password.encode('utf-8'), gensalt())
-        return cls(username=username, password_hash=hashed_password)
+        # hashed_password = bcrypt.generate_password_hash(password)
+        return cls(username=username, password_hash=password)
 
     @classmethod
     def authenticate(cls, username, password):
@@ -99,7 +67,10 @@ class User(db.Model):
             # Print the stored password hash to verify format
             print(f"Stored password hash: {user.password_hash}")
             
-            if bcrypt.check_password_hash(user.password_hash, password):
+            """ Need to complete logic for password encryption. """
+
+            # if bcrypt.check_password_hash(user.password_hash, password):
+            if user.password_hash == password:
                 print("Password matches")
                 return user
             else:
@@ -107,6 +78,50 @@ class User(db.Model):
         else: 
             print("User not found")
         return None
+
+class Setlist(db.Model):
+    __tablename__ = 'setlists'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    user = db.relationship('User', backref=db.backref('user_setlists', lazy=True))
+    songs = db.relationship('Song', secondary='setlist_songs', backref='setlists', lazy=True)
+
+    def __repr__(self): 
+        return f"<Setlist {self.id} - {self.name}>"
+
+class Song(db.Model):
+    __tablename__ = 'songs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(100), nullable=False)
+    artist = db.Column(db.String(100), nullable=False)
+    lyrics = db.Column(db.Text, nullable=True)
+    chords = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    user = db.relationship('User', backref=db.backref('songs', lazy=True))
+
+    # user = db.relationship('UserSong', backref=db.backref('song', lazy=True))
+
+    def __repr__(self):
+        return f"<Song {self.id} - {self.title} by {self.artist}>"
+
+
+class UserSong(db.Model):
+    __tablename__ = 'user_songs'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    artist = db.Column(db.String(100), nullable=False)
+    lyrics = db.Column(db.Text, nullable=True)
+    chords = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    song_user = db.relationship('User', backref=db.backref('user_songs', lazy=True))
+
+
+    
 
 class Chord(db.Model):
 

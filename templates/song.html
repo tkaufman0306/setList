@@ -1,0 +1,34 @@
+<!-- song.html file to display and edit the selected song -->
+
+{% extends "base.html" %}
+{% block content %}
+
+<h1>{{ song.title }} by {{ song.artist }}</h1>
+
+<div>
+    <button id="fetch-lyrics-button">Fetch Lyrics!</button>
+</div>
+
+<h2>Lyrics:</h2>
+<pre id="lyrics">{{ song.lyrics or "No lyrics available" }}</pre>
+
+<h2>Add Chord to Lyrics:</h2>
+<form id="add-chord-form" action="{{ url_for('add_chord', song_id=song.id) }}" method="POST">
+    <div>
+        <label for="chord">Chords:</label>
+        <input type="text" id="chord" name="chord">
+    </div>
+    <div>
+        <label for="word-index">Word Index:</label>
+        <input type="number" id="word-index" name="word_index" min="0">
+    </div>
+    <button type="submit">Add Chord</button>
+</form>
+
+<button id="save-changes-button">Save Changes</button>
+
+<a href="{{ url_for('view_setlist', setlist_id=song.setlists[0].id) }}">Back to Setlist</a>
+
+<script src="{{ url_for('static', filename='js/song.js') }}"></script>
+
+{% endblock %}
