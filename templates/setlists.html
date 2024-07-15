@@ -1,7 +1,12 @@
 <!-- homepage: redirect from ('/') -->
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
+
+<head>
+    <link rel="stylesheet" href="https://bootswatch.com/4/united/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/stylesheets/style.css">
+</head>
 
 <h1>Your Setlists</h1>
 
@@ -13,7 +18,7 @@
 </ul>
 
 
-<h2>Create a New Setlist</h2>
+<h3>Create a New Setlist</h3>
 <form method="POST" action="{{ url_for('create_setlist') }}" >
     {{ form.hidden_tag() }}
     <div>

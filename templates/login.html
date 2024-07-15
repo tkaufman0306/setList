@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+<head>
+    <link rel="stylesheet" href="https://bootswatch.com/4/united/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/stylesheets/style.css">
+</head>
+<h1>Welcome to SetList</h1>
+
+<h4>Please Login</h4>
+
+<form action="{{ url_for('login') }}" method="POST">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        <label for="username">Username</label>
+        {{ form.username(class="form-control", id="username") }}
+    </div>
+    <div class="form-group">
+        <label for="password">Password</label>
+        {{ form.password(class="form-control", id="password") }}
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</form>
+</div>
+<a href="{{ url_for('signup') }}">Create an Account</a>
+{% endblock %}
+

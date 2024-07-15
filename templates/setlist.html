@@ -1,45 +1,66 @@
-
-<!-- setlist.html file to display and edit the current setlist -->
-
 {% extends "base.html" %}
 {% block content %}
 
+<head>
+    <link rel="stylesheet" href="https://bootswatch.com/4/united/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/stylesheets/style.css">
+</head>
+
 <h1>{{ setlist.name }}</h1>
 
-<button id="edit-button">Edit</button>
-
-<h2>Songs in this setlist:</h2>
+<h4>Songs in this setlist:</h4>
 <ul id="song-list">
     {% for song in setlist.songs %}
-    <li data-song-id="{{ song.id }}"> 
+    <li data-song-id="{{ song.id }}">
         <a href="{{ url_for('view_song', song_id=song.id) }}">{{ song.title }} by {{ song.artist }}</a>
         <button class="remove-button" style="display: none;">Remove</button>
     </li>
     {% endfor %}
 </ul>
 
-<h2>Add a new song to this Setlist:</h2>
-<form action="{{ url_for('view_setlist', setlist_id=setlist.id) }}" method="POST">
-    {{ form.hidden_tag() }}
+<button id="edit-button">Edit</button>
+
+<h4>Add a song to '{{ setlist.name }}':</h4>
+
+<form id="add-song-form" action="{{ url_for('view_setlist', setlist_id=setlist.id) }}" method="POST">
+    {{ add_song_form.hidden_tag() }}
     <div>
-        {{ form.existing_song.label }} {{ form.existing_song }}
+        {{ add_song_form.existing_song.label }} {{ add_song_form.existing_song }}
+    </div>
+    <!-- <div>
+        {{ add_song_form.new_song_title.label }} {{ add_song_form.new_song_title }}
     </div>
     <div>
-        {{ form.new_song_title.label }} {{ form.new_song_title }}
-    </div>
-    <div>
-        {{ form.new_song_artist.label }} {{ form.new_song_artist }}
-    </div>
-    <button type="submit">{{ form.submit.label }}</button>
+        {{ add_song_form.new_song_artist.label }} {{ add_song_form.new_song_artist }}
+    </div> -->
+    <button type="submit">{{ add_song_form.submit.label }}</button>
 </form>
 
+<div>
+    <h2> OR </h2>
 
+    <h3>Create a New Song</h3>
+
+    <form id="create-song-form" method="POST">
+        {{ create_song_form.hidden_tag() }}
+        <div>
+            {{ create_song_form.title.label }} {{ create_song_form.title }}
+        </div>
+        <div>
+            {{ create_song_form.artist.label }} {{ create_song_form.artist }}
+        </div>
+        <div>
+            {{ create_song_form.chords.label }} {{ create_song_form.chords }}
+        </div>
+        <button type="submit">{{ create_song_form.submit.label }}</button>
+    </form>
+
+</div>
 
 <a href="{{ url_for('view_setlists') }}">Back to Setlists</a>
 
-<!-- <script>
-    const setlistId = {{ setlist.id|tojson }};
-</script> -->
+<!-- Ensure your script tag is at the end of the body -->
+<script src="https://bootswatch.com/4/united/bootstrap.min.js"></script>
 
 <script src="{{ url_for('static', filename='js/setlist.js') }}"></script>
 

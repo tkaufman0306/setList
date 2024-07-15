@@ -1,18 +1,25 @@
-<!-- song.html file to display and edit the selected song -->
-
+<!-- /song.html -->
 {% extends "base.html" %}
 {% block content %}
 
 <h1>{{ song.title }} by {{ song.artist }}</h1>
 
-<div>
-    <button id="fetch-lyrics-button">Fetch Lyrics!</button>
+<form id="lyricsForm">
+    <label for="artistInput">Artist:</label>
+    <input type="text" id="artistInput" name="artist" value="{{ song.artist }}">
+
+    <label for="titleInput">Song Title:</label>
+    <input type="text" id="titleInput" name="song_title" value="{{ song.title }}">
+
+    <button type="button" id="fetchLyricsBtn">Fetch Lyrics</button>
+</form>
+
+<div id="lyricsDisplay">
+    <h2>Lyrics:</h2>
+    <pre id="lyrics">{{ song.lyrics or "No lyrics available" }}</pre>
 </div>
 
-<h2>Lyrics:</h2>
-<pre id="lyrics">{{ song.lyrics or "No lyrics available" }}</pre>
-
-<h2>Add Chord to Lyrics:</h2>
+<h2>Add Chords to Lyrics:</h2>
 <form id="add-chord-form" action="{{ url_for('add_chord', song_id=song.id) }}" method="POST">
     <div>
         <label for="chord">Chords:</label>
@@ -30,5 +37,39 @@
 <a href="{{ url_for('view_setlist', setlist_id=song.setlists[0].id) }}">Back to Setlist</a>
 
 <script src="{{ url_for('static', filename='js/song.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const fetchLyricsBtn = document.getElementById('fetchLyricsBtn');
+        const lyricsForm = document.getElementById('lyricsForm');
+        const lyricsDisplay = document.getElementById('lyricsDisplay');
+
+        fetchLyricsBtn.addEventListener('click', function () {
+            const artist = document.getElementById('artistInput').value;
+            const songTitle = document.getElementById('titleInput').value;
+
+            if (!artist || !songTitle) {
+                alert('Please enter both artist and song title.');
+                return;
+            }
+
+            // Make Ajax request
+            const url = `/fetch-lyrics?artist=${encodeURIComponent(artist)}&song_title=${encodeURIComponent(songTitle)}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.lyrics) {
+                        lyricsDisplay.innerHTML = `<h2>Lyrics:</h2><pre>${data.lyrics}</pre>`;
+                    } else {
+                        lyricsDisplay.innerHTML = `<p>${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching lyrics:', error);
+                    lyricsDisplay.innerHTML = '<p>Failed to fetch lyrics. Please try again later.</p>';
+                });
+        });
+    });
+</script>
 
 {% endblock %}

@@ -5,16 +5,26 @@ from flask import Flask, render_template, redirect, session, flash, request, url
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_debugtoolbar import DebugToolbarExtension
 from models import db, connect_db, Setlist, Song, User, UserSong, Chord, Word  
-from forms import UserForm, SetListForm, AddSongForm, LoginForm, UserSongForm
+from forms import UserForm, SetListForm, AddSongForm, CreateSongForm, LoginForm, UserSongForm
 from sqlalchemy.exc import IntegrityError
 # from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import requests
  
 app = Flask(__name__)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    # Query User model to retrieve the user by ID
+    return User.query.get(int(user_id))
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///setlist-app'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True
+app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = "I'LL NEVER TELL!!"
 app.config['SESSION_COOKIE_NAME'] = "setlist_session"
@@ -50,10 +60,83 @@ def homepage():
     form = LoginForm()
     if form.validate_on_submit():
         print("Form validated successfully")
-    return render_template('home_anon.html', form=form)
+    return render_template('login.html', form=form)
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('view_setlists'))
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.register(username, password)
+        db.session.add(user)
+        db.session.commit()
+        login_user(user)
+        return redirect(url_for('setlists'))
+
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        user = User.query.filter_by(username=username).first()
+       
+        if user:
+            print(f"User found: {user.username}")
+            if user.password_hash == password:  # Direct comparison for simplicity
+                login_user(user)
+                session['user_id'] = user.id
+                print("User logged in successfully")
+                flash('Logged in successfully!', 'success')
+                return redirect(url_for('view_setlists'))
+            else:
+                print("Invalid password")
+                flash('Invalid username or password.')
+        else:
+            print("User not found")
+            flash('User not found.', 'danger')
+    else:
+        print("Form not validated")
+
+    return render_template('login.html', form=form)
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    if current_user.is_authenticated:
+        logout_user()
+        session.pop('user_id', None)
+        flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+#  Route to view user setlists
+
+@app.route('/setlists', methods=['GET', 'POST'])
+@login_required
+def view_setlists():
+    setlists = Setlist.query.filter_by(user_id=current_user.id).all()
+
+    form = SetListForm()
+    
+    if 'user_id' not in session:
+        flash("Please log in first.", "danger")
+        return redirect(url_for('homepage'))
+    
+    user_id = session['user_id']
+    setlists = Setlist.query.filter_by(user_id=user_id).all()
+    
+    return render_template('setlists.html', setlists=setlists, form=form)
+
 
 
 @app.route('/create_setlist', methods=['GET', 'POST'])
+# @login_required
 def create_setlist():
     if 'user_id' not in session:
         flash('Please log in first.', 'error')
@@ -85,61 +168,58 @@ def create_setlist():
             flash('An error occurred. Please try again.', 'error')
     
     return render_template('create_setlist.html', form=form)
-
-
-
-#  Route to view user setlists  
-@app.route('/view_setlists', methods=['GET', 'POST'])
-def view_setlists():
-    
-    form = SetListForm()
-    
-    if 'user_id' not in session:
-        flash("Please log in first.", "danger")
-        return redirect(url_for('homepage'))
-    
-    user_id = session['user_id']
-    setlists = Setlist.query.filter_by(user_id=user_id).all()
-    
-    return render_template('view_setlists.html', setlists=setlists, form=form)
+  
 
 # Route to view a specific setlist
 @app.route('/setlist/<int:setlist_id>', methods=['GET', 'POST'])
+@login_required
 def view_setlist(setlist_id):
     setlist = Setlist.query.get_or_404(setlist_id)
-    form = AddSongForm()
+    add_song_form = AddSongForm()
+    create_song_form = CreateSongForm()
 
-    # Populate the dropdown with existing songs
-    form.existing_song.choices = [(song.id, f"{song.title} by {song.artist}") for song in Song.query.all()]
-
-    if form.validate_on_submit():
-        try: 
-
-            if form.existing_song.data:
-                song_id = form.existing_song.data
-                song = Song.query.get(song_id)
-            else:
-                song_title = form.new_song_title.data
-                song_artist = form.new_song_artist.data
-                song = Song(title=song_title, artist=song_artist, user_id=session['user_id'])
-                db.session.add(song)
-                db.session.commit()
-
+    if add_song_form.validate_on_submit():
+        song_id = add_song_form.existing_song.data
+        song = Song.query.get(song_id)
+        if song:
             setlist.songs.append(song)
             db.session.commit()
             flash("Song added to setlist!", "success")
-            return redirect(url_for('view_setlist', setlist_id=setlist_id))
-        
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error adding song to setlist: {e}")
-            flash('An error occured, Please try again.', 'error')
+        else:
+            flash("Song not found.", "error")
+        return redirect(url_for('view_setlist', setlist_id=setlist.id))
+    
+    if create_song_form.validate_on_submit():
+        new_song = Song(
+            title=create_song_form.title.data,
+            artist=create_song_form.artist.data,
+            chords=create_song_form.chords.data,
+            user_id=current_user.id
+        )
+        db.session.add(new_song)
+        db.session.commit()
+        flash("New song created and added to setlist!", "success")
+        setlist.songs.append(new_song)
+        db.session.commit()
+        return redirect(url_for('view_setlist', setlist_id=setlist.id))
 
-    return render_template('setlist.html', setlist=setlist, form=form)
+    add_song_form.existing_song.choices = [(s.id, f'{s.title} by {s.artist}') for s in Song.query.all()]
+
+    return render_template('setlist.html', setlist=setlist, add_song_form=add_song_form, create_song_form=create_song_form)
+
+
+        # except Exception as e:
+        #     db.session.rollback()
+        #     print(f"Error adding song to setlist: {e}")
+        #     flash('An error occured, Please try again.', 'error')
+
+# Populate the dropdown with existing songs
+    # add_song_form.existing_song.choices = [(song.id, f"{song.title} by {song.artist}") for song in Song.query.all()]
+
 
 
 @app.route('/user/songs', methods=['GET', 'POST'])
-@login_required
+# @login_required
 def user_songs():
     form = UserSongForm()
     
@@ -162,11 +242,13 @@ def user_songs():
 
 
 @app.route('/song/<int:song_id>')
+# @login_required
 def view_song(song_id):
     song = Song.query.get_or_404(song_id)
     return render_template('song.html', song=song)
 
 @app.route('/save-lyrics', methods=['POST'])
+# @login_required
 def save_lyrics():
     data = request.get_json()
     song_id = data.get('song_id')
@@ -178,6 +260,28 @@ def save_lyrics():
     db.session.commit()
 
     return jsonify({'success': True}), 200
+
+# @app.route('/setlist/<int:setlist_id>/add-song', methods=['POST'])
+# # @login_required
+# def add_song_to_setlist(setlist_id):
+#     data = request.get_json()
+#     song_title = data.get('title')
+#     song_artist = data.get('artist')
+
+#     if not song_title or not song_artist:
+#         return jsonify({'success': False, 'error': 'Missing title or artist'}), 400
+
+#     new_song = Song(title=song_title, artist=song_artist, user_id=current_user.id)
+
+#     setlist = Setlist.query.get(setlist_id)
+#     if not setlist:
+#         return jsonify({'success': False, 'error': 'Setlist not found'}), 404
+
+#     setlist.songs.append(new_song)
+#     db.session.add(new_song)
+#     db.session.commit()
+
+#     return jsonify({'success': True, 'song_id': new_song.id})
 
 
 # Route to remove a song from a setlist
@@ -196,6 +300,7 @@ def remove_song_from_setlist(setlist_id):
     else:
         return jsonify({'error': 'Song not found in setlist'}), 404
     
+from flask import request, jsonify, render_template
 
 @app.route('/fetch-lyrics', methods=['GET'])
 def fetch_lyrics():
@@ -205,19 +310,20 @@ def fetch_lyrics():
     if not artist or not song_title:
         return jsonify({'error': 'Missing artist or song_title parameter'}), 400
     
-    # Make request to Lyrics.ovh API
+    # Replace 'API_KEY' with your actual Musixmatch API key
     api_url = f'http://api.musixmatch.com/ws/1.1/matcher.lyrics.get?q_artist={artist}&q_track={song_title}&apikey={API_KEY}'
     response = requests.get(api_url)
     
     if response.status_code == 200:
         data = response.json()
-        if 'message' in data and 'body' in data['message'] and 'lyrics' in  data['message']['body']:
+        if 'message' in data and 'body' in data['message'] and 'lyrics' in data['message']['body']:
             lyrics = data['message']['body']['lyrics']['lyrics_body']
             return jsonify({'lyrics': lyrics}), 200
         else:
             return jsonify({'error': 'Lyrics not found for the given artist and song'}), 404
     else:
         return jsonify({'error': 'Failed to fetch lyrics from the API'}), 500
+
 
 # if __name__ == '__main__':
 #     app.run(debug=True)
@@ -254,60 +360,35 @@ def add_chord():
 
 
 
-@app.route('/register', methods=['GET', 'POST'])
-def register_user():
-    form = UserForm()
-    if form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-        new_user = User.register(username=username, password=password)
 
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            session['user_id'] = new_user.id
-            flash('Welcome! Successfully Created Your Account! Congrats', "success")
-            return redirect(url_for('view_setlists'))
+    
+    # form = UserForm()
+    # if form.validate_on_submit():
+    #     username = form.username.data
+    #     password = form.password.data
+    #     new_user = User.register(username=username, password=password)
+
+    #     try:
+    #         db.session.add(new_user)
+    #         db.session.commit()
+    #         session['user_id'] = new_user.id
+    #         flash('Welcome! Successfully Created Your Account! Congrats', "success")
+    #         return redirect(url_for('view_setlists'))
         
-        except IntegrityError as e:
-            db.session.rollback()
-            print(f"IntegrityError: {e}")
-            form.username.errors.append('Username taken.  Please pick another')
+    #     except IntegrityError as e:
+    #         db.session.rollback()
+    #         print(f"IntegrityError: {e}")
+    #         form.username.errors.append('Username taken.  Please pick another')
 
-        except Exception as e:
-            db.session.rollback()
-            print(f"Exception: {e}")
-            form.username.errors.append('An error occurred. Please try again.')
+    #     except Exception as e:
+    #         db.session.rollback()
+    #         print(f"Exception: {e}")
+    #         form.username.errors.append('An error occurred. Please try again.')
     
-    return render_template('signup.html', form=form)
+    # return render_template('signup.html', form=form)
     
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        print("Form submitted successfully.")
-        user = User.authenticate(form.username.data, form.password.data)
-        if user:
-            login_user(user)
-            flash(f"Welcome back, {user.username}!", "success")
-            return redirect(url_for('view_setlists'))
-        else:
-            print("Authentication failed.")
-            form.username.errors.append('Invalid username or password.')
-    else:
-        print("form validation failed.")
 
-    return render_template('home_anon.html', form=form)
-
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    session.pop('user_id')
-    flash("You have successfully logged out.", "success")
-    return redirect(url_for('homepage'))
 
 
 

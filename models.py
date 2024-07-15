@@ -14,13 +14,27 @@ bcrypt = Bcrypt()
 def connect_db(app):
     db.init_app(app)
 
-
-
 setlist_songs = db.Table(
     'setlist_songs',
     db.Column('setlist_id', db.Integer, db.ForeignKey('setlists.id'), primary_key=True),
     db.Column('song_id', db.Integer, db.ForeignKey('songs.id'), primary_key=True)
 )
+
+class UserSong(db.Model):
+    __tablename__ = 'user_songs'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    artist = db.Column(db.String(100), nullable=False)
+    lyrics = db.Column(db.Text, nullable=True)
+    chords = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    user = db.relationship('User', back_populates='user_songs_rel')
+
+    def __repr__(self):
+        return f"<UserSong {self.id} - {self.title} by {self.artist}>"
+    
+
 
 class User(UserMixin, db.Model):
     """Site user."""
@@ -34,24 +48,23 @@ class User(UserMixin, db.Model):
                          nullable=False)
     password_hash = db.Column(db.String(200), 
                               nullable=False)
-    user_songs_rel = db.relationship('UserSong', backref=db.backref('user', lazy=True))
 
     created_songs = db.relationship('Song', 
-                            backref=db.backref('creator', 
-                            lazy=True))
+                            back_populates='creator', 
+                            lazy=True)
     setlists = db.relationship('Setlist',
                                 back_populates='user', lazy=True)
+    user_songs_rel = db.relationship('UserSong', back_populates='user', lazy=True)
     
+    def __repr__(self):
+        return f'<User {self.username}>'
+
     def get_id(self):
         return (self.id)
     
-    def set_password(self, password):
-        """Set password with bcrypt"""
-        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-
     def check_password(self, password):
-        """Check password with bcrypt"""
-        return bcrypt.check_password_hash(self.password_hash, password)
+        # Remove this method
+        return self.password_hash == password
     
     @classmethod
     def register(cls, username, password):
@@ -86,8 +99,8 @@ class Setlist(db.Model):
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    user = db.relationship('User', backref=db.backref('user_setlists', lazy=True))
-    songs = db.relationship('Song', secondary='setlist_songs', backref='setlists', lazy=True)
+    user = db.relationship('User', back_populates='setlists')
+    songs = db.relationship('Song', secondary='setlist_songs', back_populates='setlists', lazy='dynamic')
 
     def __repr__(self): 
         return f"<Setlist {self.id} - {self.name}>"
@@ -102,27 +115,14 @@ class Song(db.Model):
     chords = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    user = db.relationship('User', backref=db.backref('songs', lazy=True))
-
-    # user = db.relationship('UserSong', backref=db.backref('song', lazy=True))
-
+    creator = db.relationship('User', back_populates='created_songs')
+    setlists = db.relationship('Setlist', secondary='setlist_songs', back_populates='songs')
     def __repr__(self):
         return f"<Song {self.id} - {self.title} by {self.artist}>"
 
 
-class UserSong(db.Model):
-    __tablename__ = 'user_songs'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    artist = db.Column(db.String(100), nullable=False)
-    lyrics = db.Column(db.Text, nullable=True)
-    chords = db.Column(db.Text, nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    song_user = db.relationship('User', backref=db.backref('user_songs', lazy=True))
-
 
     
-
 class Chord(db.Model):
 
     __tablename__ = 'chords'

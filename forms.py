@@ -13,7 +13,7 @@ class UserForm(FlaskForm):
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired()])
     password = PasswordField('Password', validators=[InputRequired()])
-
+   
 class SetListForm(FlaskForm):
     """Form for adding playlists."""
 
@@ -23,10 +23,16 @@ class SetListForm(FlaskForm):
 
 
 class AddSongForm(FlaskForm):
-    existing_song = SelectField('Select an existing song', coerce=int, coices=[])
-    new_song_title = StringField('Or add a new song title', validators=[Length(max=100), DataRequired()])
-    new_song_artist = StringField('Add artist name', validators=[Length(max=100), DataRequired()])
+    existing_song = SelectField('Select an existing song', coerce=int, choices=[])
+    new_song_title = StringField('Or add a new song title', validators=[Length(max=100)])
+    new_song_artist = StringField('Add artist name', validators=[Length(max=100)])
     submit = SubmitField('Add Song')
+
+class CreateSongForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=100)])
+    artist = StringField('Artist', validators=[DataRequired(), Length(max=100)])
+    chords = StringField('Chords')
+    submit = SubmitField('Create Song')
 
 class UserSongForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=100)])
