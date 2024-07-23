@@ -22,7 +22,7 @@
 
 <h4>Add a song to '{{ setlist.name }}':</h4>
 
-<form id="add-song-form" action="{{ url_for('view_setlist', setlist_id=setlist.id) }}" method="POST">
+<form id="add-song-form" method="POST">
     {{ add_song_form.hidden_tag() }}
     <div>
         {{ add_song_form.existing_song.label }} {{ add_song_form.existing_song }}
@@ -57,11 +57,50 @@
 
 </div>
 
+
 <a href="{{ url_for('view_setlists') }}">Back to Setlists</a>
 
 <!-- Ensure your script tag is at the end of the body -->
 <script src="https://bootswatch.com/4/united/bootstrap.min.js"></script>
 
-<script src="{{ url_for('static', filename='js/setlist.js') }}"></script>
+<!-- <script src="{{ url_for('static', filename='js/setlist.js') }}"></script> -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const editButton = document.getElementById("edit-button");
+        if (editButton) {
+            editButton.addEventListener("click", function () {
+                document.querySelectorAll(".remove-button").forEach((button) => {
+                    button.style.display = button.style.display === "none" ? "inline" : "none";
+                });
+                this.textContent = this.textContent === "Edit" ? "Done" : "Edit";
+            });
+        }
+
+        document.querySelectorAll(".remove-button").forEach((button) => {
+            button.addEventListener("click", function () {
+                const li = this.parentElement;
+                const songId = li.getAttribute("data-song-id");
+
+                fetch(`/setlist/{{ setlist.id }}/remove-song`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ song_id: songId }),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            li.remove();
+                            console.log("Song removed successfully.");
+                        } else {
+                            console.error("Failed to remove song.");
+                        }
+                    });
+            });
+        });
+    });
+</script>
 
 {% endblock %}

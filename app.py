@@ -10,8 +10,9 @@ from sqlalchemy.exc import IntegrityError
 # from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import requests
- 
+from flask_migrate import Migrate
 app = Flask(__name__)
+migrate = Migrate(app, db)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -181,7 +182,9 @@ def view_setlist(setlist_id):
     if add_song_form.validate_on_submit():
         song_id = add_song_form.existing_song.data
         song = Song.query.get(song_id)
+
         if song:
+            print(f"Song found: {song.id}")
             setlist.songs.append(song)
             db.session.commit()
             flash("Song added to setlist!", "success")
@@ -193,9 +196,10 @@ def view_setlist(setlist_id):
         new_song = Song(
             title=create_song_form.title.data,
             artist=create_song_form.artist.data,
-            chords=create_song_form.chords.data,
+            Key=create_song_form.key.data,
             user_id=current_user.id
         )
+        
         db.session.add(new_song)
         db.session.commit()
         flash("New song created and added to setlist!", "success")
@@ -300,7 +304,6 @@ def remove_song_from_setlist(setlist_id):
     else:
         return jsonify({'error': 'Song not found in setlist'}), 404
     
-from flask import request, jsonify, render_template
 
 @app.route('/fetch-lyrics', methods=['GET'])
 def fetch_lyrics():

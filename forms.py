@@ -3,7 +3,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, PasswordField, SubmitField, TextAreaField
-from wtforms.validators import InputRequired, Length, DataRequired
+from wtforms.validators import InputRequired, Length, DataRequired, Optional
 
 
 class UserForm(FlaskForm):
@@ -24,14 +24,14 @@ class SetListForm(FlaskForm):
 
 class AddSongForm(FlaskForm):
     existing_song = SelectField('Select an existing song', coerce=int, choices=[])
-    new_song_title = StringField('Or add a new song title', validators=[Length(max=100)])
-    new_song_artist = StringField('Add artist name', validators=[Length(max=100)])
+    new_song_title = StringField('Or add a new song title', validators=[Length(max=100), Optional()])
+    new_song_artist = StringField('Add artist name', validators=[Length(max=100), Optional()])
     submit = SubmitField('Add Song')
 
 class CreateSongForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired(), Length(max=100)])
     artist = StringField('Artist', validators=[DataRequired(), Length(max=100)])
-    chords = StringField('Chords')
+    chords = StringField('Key (Optional)', validators=[Optional()])
     submit = SubmitField('Create Song')
 
 class UserSongForm(FlaskForm):

@@ -114,6 +114,7 @@ class Song(db.Model):
     lyrics = db.Column(db.Text, nullable=True)
     chords = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    key = db.Column(db.String(10), nullable=True)
 
     creator = db.relationship('User', back_populates='created_songs')
     setlists = db.relationship('Setlist', secondary='setlist_songs', back_populates='songs')
